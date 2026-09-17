@@ -75,6 +75,10 @@ static class MarkdownParser
                     break;
                 case ContainerInline container:
                     parts.Add(InlineText(container));
+                    if (container is LinkInline link && !string.IsNullOrWhiteSpace(link.Url))
+                    {
+                        parts.Add($" {link.Url}");
+                    }
                     break;
             }
         }
