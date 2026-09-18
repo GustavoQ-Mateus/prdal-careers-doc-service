@@ -19,7 +19,7 @@ app.MapGet("/hello", () =>
 app.MapPost("/render/docx", (RenderRequest req) =>
 {
     var elements = MarkdownParser.Parse(req.Markdown);
-    var bytes = DocxRenderer.Render(elements);
+    var bytes = DocxRenderer.Render(elements, req.Template);
     return Results.File(
         bytes,
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -29,7 +29,7 @@ app.MapPost("/render/docx", (RenderRequest req) =>
 app.MapPost("/render/pdf", (RenderRequest req) =>
 {
     var elements = MarkdownParser.Parse(req.Markdown);
-    var bytes = PdfRenderer.Render(elements);
+    var bytes = PdfRenderer.Render(elements, req.Template);
     return Results.File(bytes, "application/pdf", "curriculo.pdf");
 });
 
