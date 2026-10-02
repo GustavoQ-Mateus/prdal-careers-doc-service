@@ -7,6 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://0.0.0.0:8080");
 
 var app = builder.Build();
+ServicoAutenticado.ExigirTokenNoBoot(app.Configuration);
+app.UseServicoAutenticado();
 
 app.MapGet("/health", () => new HealthResponse("doc-service", "ok"));
 
@@ -34,6 +36,8 @@ app.MapPost("/render/pdf", (RenderRequest req) =>
 });
 
 app.Run();
+
+public partial class Program;
 
 record HealthResponse(string Service, string Status);
 record HelloHop(string Service, string Message);
