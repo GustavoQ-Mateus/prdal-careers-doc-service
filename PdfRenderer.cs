@@ -81,13 +81,15 @@ static class PdfRenderer
     {
         foreach (var span in spans)
         {
-            if (!string.IsNullOrWhiteSpace(span.Url))
+            var spanUrl = LinkSeguro.Normalizar(span.Url);
+            if (spanUrl is not null)
             {
-                AppendLink(text, span.Text, span.Url, forceBold || span.Bold);
+                AppendLink(text, span.Text, spanUrl, forceBold || span.Bold);
                 continue;
             }
-            foreach (var (segment, url) in LinkDetector.Split(span.Text))
+            foreach (var (segment, detectada) in LinkDetector.Split(span.Text))
             {
+                var url = LinkSeguro.Normalizar(detectada);
                 if (url is null)
                 {
                     var descriptor = text.Span(segment);

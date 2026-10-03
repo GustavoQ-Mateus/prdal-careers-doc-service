@@ -103,14 +103,16 @@ static class DocxRenderer
         ElementKind kind,
         ResumeLayout layout)
     {
-        if (!string.IsNullOrWhiteSpace(span.Url))
+        var spanUrl = LinkSeguro.Normalizar(span.Url);
+        if (spanUrl is not null)
         {
-            paragraph.Append(Hyperlink(main, span.Text, span.Url, span.Bold, kind, layout));
+            paragraph.Append(Hyperlink(main, span.Text, spanUrl, span.Bold, kind, layout));
             return;
         }
 
-        foreach (var (text, url) in LinkDetector.Split(span.Text))
+        foreach (var (text, detectada) in LinkDetector.Split(span.Text))
         {
+            var url = LinkSeguro.Normalizar(detectada);
             paragraph.Append(url is null
                 ? TextRun(text, span.Bold, kind, layout)
                 : Hyperlink(main, text, url, span.Bold, kind, layout));

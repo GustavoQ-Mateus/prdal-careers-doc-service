@@ -176,9 +176,10 @@ static partial class MarkdownParser
                     AppendSpan(spans, "\n", inheritedBold, null);
                     break;
                 case LinkInline link:
+                    var url = LinkSeguro.Normalizar(link.Url);
                     foreach (var span in InlineSpans(link, inheritedBold))
                     {
-                        AppendSpan(spans, span.Text, span.Bold, link.Url);
+                        AppendSpan(spans, span.Text, span.Bold, url);
                     }
                     break;
                 case EmphasisInline emphasis:
@@ -230,6 +231,19 @@ static partial class MarkdownParser
         public bool ContactSeen { get; set; }
         public bool EducationStarted { get; set; }
         public string Section { get; set; } = string.Empty;
+    }
+}
+
+static class LinkSeguro
+{
+    static readonly HashSet<string> Esquemas = new(StringComparer.OrdinalIgnoreCase) { "http", "https", "mailto" };
+
+    public static string? Normalizar(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        return Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) && Esquemas.Contains(uri.Scheme)
+            ? uri.AbsoluteUri
+            : null;
     }
 }
 
