@@ -9,6 +9,8 @@ builder.WebHost.UseUrls("http://0.0.0.0:8080");
 var app = builder.Build();
 ServicoAutenticado.ExigirTokenNoBoot(app.Configuration);
 app.UseServicoAutenticado();
+var limites = new LimitesRenderizacao(app.Configuration);
+app.UseLimiteDeCorpo(limites);
 
 app.MapGet("/health", () => new HealthResponse("doc-service", "ok"));
 
@@ -19,21 +21,21 @@ app.MapGet("/hello", () =>
 });
 
 app.MapPost("/render/docx", (RenderRequest req) =>
-{
-    var elements = MarkdownParser.Parse(req.Markdown);
-    var bytes = DocxRenderer.Render(elements, req.Template);
-    return Results.File(
-        bytes,
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "curriculo.docx");
-});
+    limites.MarkdownExcede(req.Markdown)
+        ? Task.FromResult(limites.CorpoGrande())
+        : limites.Renderizar(
+            () => DocxRenderer.Render(MarkdownParser.Parse(req.Markdown), req.Template),
+            bytes => Results.File(
+                bytes,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "curriculo.docx")));
 
 app.MapPost("/render/pdf", (RenderRequest req) =>
-{
-    var elements = MarkdownParser.Parse(req.Markdown);
-    var bytes = PdfRenderer.Render(elements, req.Template);
-    return Results.File(bytes, "application/pdf", "curriculo.pdf");
-});
+    limites.MarkdownExcede(req.Markdown)
+        ? Task.FromResult(limites.CorpoGrande())
+        : limites.Renderizar(
+            () => PdfRenderer.Render(MarkdownParser.Parse(req.Markdown), req.Template),
+            bytes => Results.File(bytes, "application/pdf", "curriculo.pdf")));
 
 app.Run();
 
