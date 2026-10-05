@@ -1,0 +1,15 @@
+services:
+  http:
+    image: prdal-doc-codex-http
+    environment:
+      PRDAL_AMBIENTE: producao
+      SERVICE_TOKEN: token-de-servico-de-teste-com-mais-de-32-bytes
+    ports:
+      - "127.0.0.1:18084:8080"
+  lambda:
+    image: prdal-doc-codex-lambda
+    environment:
+      PRDAL_AMBIENTE: producao
+      SERVICE_TOKEN: token-de-servico-de-teste-com-mais-de-32-bytes
+    ports:
+      - "127.0.0.1:18085:8080"

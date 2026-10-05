@@ -47,3 +47,19 @@ documento completo gerado com o arquivo versionado e falha se divergir.
 Execute `powershell -File gerar-contrato.ps1` e revise o diff para atualizá-lo.
 A rota `/openapi/v1.json` existe apenas com `PRDAL_AMBIENTE=desenvolvimento`.
 O teste de produção verifica que essa rota retorna 404 com credencial válida.
+
+## Verificação das imagens
+
+Execute na raiz do monorepo:
+
+```powershell
+docker build -f apps/doc-service/Dockerfile -t prdal-doc-codex-http apps/doc-service
+docker build -f apps/doc-service/Dockerfile.lambda -t prdal-doc-codex-lambda apps/doc-service
+docker compose -p doc-codex-c4a -f apps/doc-service/tests/compose.verificacao.yml up -d
+python apps/doc-service/tests/verificar-imagens.py
+docker compose -p doc-codex-c4a -f apps/doc-service/tests/compose.verificacao.yml down
+```
+
+O projeto isolado usa somente as portas locais 18084 e 18085, sem banco nem
+volumes. A prova cobre PDF de uma e várias páginas, DOCX e recusa de 8 MB nos
+dois modos. O tempo impresso é de invocação no emulador local, sem SnapStart.
