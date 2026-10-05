@@ -38,3 +38,12 @@ Estimativa de partida a frio: 1 a 5 segundos sem snapshot; abaixo de 1 segundo
 com SnapStart em condições favoráveis, conforme a AWS. São estimativas,
 não medições desta função na nuvem. O primeiro carregamento nativo e render
 podem acrescentar latência e devem ser medidos pela infraestrutura.
+
+## Contrato
+
+`contrato/openapi.json` é gerado pelo OpenAPI nativo do ASP.NET Core 10,
+em OpenAPI 3.0 para consumo pelo pacote de contratos. O teste compara o
+documento completo gerado com o arquivo versionado e falha se divergir.
+Execute `powershell -File gerar-contrato.ps1` e revise o diff para atualizá-lo.
+A rota `/openapi/v1.json` existe apenas com `PRDAL_AMBIENTE=desenvolvimento`.
+O teste de produção verifica que essa rota retorna 404 com credencial válida.
