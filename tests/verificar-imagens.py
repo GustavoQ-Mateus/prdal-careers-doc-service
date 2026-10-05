@@ -71,6 +71,6 @@ for rota in ("/render/pdf", "/render/docx"):
     markdown = "x" * (8 * 1024 * 1024)
     status, _, corpo = postar(f"http://127.0.0.1:18084{rota}", {"markdown": markdown})
     assert status == 413, corpo[:1000]
-    resposta = invocar(rota, markdown)
+    resposta = invocar(rota, "x" * (512 * 1024))
     assert resposta["statusCode"] == 413, resposta
-    print(f"8 MB rejeitados em HTTP/Lambda: {rota}")
+    print(f"HTTP rejeitou 8 MB; Lambda rejeitou 512 KB: {rota}")

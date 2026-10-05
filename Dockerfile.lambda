@@ -1,11 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY doc-service.csproj ./
-RUN dotnet restore -r linux-x64
+RUN --mount=type=cache,id=prdal-doc-nuget,sharing=locked,target=/root/.nuget/packages dotnet restore -r linux-x64 -p:SelfContained=false -p:UseAppHost=false
 COPY . ./
-RUN dotnet publish -c Release -r linux-x64 --self-contained false -o /app
+RUN --mount=type=cache,id=prdal-doc-nuget,sharing=locked,target=/root/.nuget/packages dotnet publish -c Release -r linux-x64 --self-contained false -p:UseAppHost=false -o /app
 
 FROM public.ecr.aws/lambda/dotnet:10
+RUN dnf install -y fontconfig && dnf clean all
 COPY --from=build /app ${LAMBDA_TASK_ROOT}/
 USER 1000:1000
 CMD ["doc-service::DocService.Lambda::FunctionHandlerAsync"]
