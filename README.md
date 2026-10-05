@@ -1,3 +1,5 @@
+Implementa a `spec-v1.11.0`.
+
 # Doc-service
 
 Implementa a spec v1.11.0 em .NET 10. As rotas POST `/render/pdf` e
@@ -76,3 +78,19 @@ O projeto isolado usa somente as portas locais 18084 e 18085, sem banco nem
 volumes. A prova cobre PDF de uma e várias páginas, DOCX, recusa de 8 MB em
 HTTP e recusa de 512 KB no emulador Lambda. O tempo impresso é de invocação
 no emulador local, sem SnapStart.
+
+## Execução independente
+
+Na raiz desta pasta, com .NET 10:
+
+```text
+dotnet restore
+dotnet restore tests
+dotnet build -c Release --no-restore
+dotnet test tests -c Release --no-restore
+dotnet run --project doc-service.csproj
+docker build -t prdal-doc-service .
+docker build -f Dockerfile.lambda -t prdal-doc-service-lambda .
+```
+
+Defina `SERVICE_TOKEN` com pelo menos 32 bytes aleatórios, `PRDAL_AMBIENTE=desenvolvimento` no uso local e `ASPNETCORE_URLS=http://+:8080`. `AWS_LAMBDA_RUNTIME_API` seleciona a execução na Lambda. Nenhum arquivo de outra unidade é necessário. O contexto das duas imagens é esta pasta.
