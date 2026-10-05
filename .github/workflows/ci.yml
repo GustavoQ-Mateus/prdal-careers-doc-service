@@ -55,3 +55,52 @@ jobs:
           name: imagem
           path: ${{ runner.temp }}/imagem.tar
           retention-days: 1
+
+  publicar:
+    needs: verificar
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_ROLE_ARN != '' && needs.verificar.outputs.imagem == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: publicar
+      cancel-in-progress: false
+    env:
+      AWS_PROFILE: prdal-gustavo
+      AWS_REGION: us-east-1
+      ECR_REPOSITORIO: doc-service
+      LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: imagem
+        path: ${{ runner.temp }}
+    - uses: aws-actions/configure-aws-credentials@v6
+      with:
+        role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+        aws-region: us-east-1
+    - name: Conferir identidade
+      run: aws sts get-caller-identity --profile prdal-gustavo
+    - name: Publicar imagem verificada
+      id: imagem
+      env:
+        SHA: ${{ github.sha }}
+      run: |-
+        conta=$(aws sts get-caller-identity --profile prdal-gustavo --query Account --output text)
+        registro="$conta.dkr.ecr.$AWS_REGION.amazonaws.com"
+        aws ecr get-login-password --profile prdal-gustavo | docker login --username AWS --password-stdin "$registro"
+        docker load -i "$RUNNER_TEMP/imagem.tar"
+        imagem="$registro/$ECR_REPOSITORIO"
+        docker tag "unidade:$SHA" "$imagem:$SHA"
+        docker tag "unidade:$SHA" "$imagem:latest"
+        docker push "$imagem:$SHA"
+        docker push "$imagem:latest"
+        echo "uri=$imagem:$SHA" >> "$GITHUB_OUTPUT"
+    - name: Atualizar funcao
+      env:
+        IMAGEM: ${{ steps.imagem.outputs.uri }}
+      run: |-
+        test -n "$LAMBDA_FUNCTION_NAME"
+        aws lambda update-function-code --profile prdal-gustavo --function-name "$LAMBDA_FUNCTION_NAME" --image-uri "$IMAGEM" > /dev/null
+        aws lambda wait function-updated-v2 --profile prdal-gustavo --function-name "$LAMBDA_FUNCTION_NAME"
