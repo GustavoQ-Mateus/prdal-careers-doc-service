@@ -8,9 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="tests/**" />
-    <Content Remove="tests/**" />
-    <None Remove="tests/**" />
+    <Compile Remove="tests/**;scripts/**" />
+    <Content Remove="tests/**;scripts/**" />
+    <None Remove="tests/**;scripts/**" />
     <InternalsVisibleTo Include="DocService.Tests" />
   </ItemGroup>
 
