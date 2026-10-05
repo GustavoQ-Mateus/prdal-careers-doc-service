@@ -29,7 +29,7 @@ sealed class LimitesRenderizacao
     public bool MarkdownExcede(string? markdown) =>
         Encoding.UTF8.GetByteCount(markdown ?? string.Empty) > MarkdownMaxBytes;
 
-    public async Task<IResult> Renderizar(Func<byte[]> renderizar, Func<byte[], IResult> resposta)
+    public async Task<IResult> Renderizar<T>(Func<T> renderizar, Func<T, IResult> resposta)
     {
         var tarefa = Task.Run(renderizar);
         var concluida = await Task.WhenAny(tarefa, Task.Delay(TempoMaxMs));

@@ -1,4 +1,5 @@
 using QuestPDF.Fluent;
+using QuestPDF.Elements;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
@@ -14,16 +15,21 @@ static class PdfRenderer
     }
 
     public static byte[] Render(IReadOnlyList<DocElement> elements, string? template = null)
+        => RenderComPaginas(elements, template).Bytes;
+
+    public static PdfRenderizado RenderComPaginas(IReadOnlyList<DocElement> elements, string? template = null)
     {
+        var contador = new ContadorPaginas();
         var compact = string.Equals(template, "compact", StringComparison.OrdinalIgnoreCase);
         var baseSize = compact ? 9f : 10f;
-        return Document.Create(container =>
+        var bytes = Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(PageSizes.A4);
                 page.Margin(12, Unit.Millimetre);
                 page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(baseSize));
+                page.Foreground().Dynamic(contador);
                 page.Content().Column(column =>
                 {
                     column.Spacing(0);
@@ -34,6 +40,7 @@ static class PdfRenderer
                 });
             });
         }).GeneratePdf();
+        return new PdfRenderizado(bytes, contador.Paginas);
     }
 
     static void RenderElement(IContainer container, DocElement element, bool compact)
@@ -134,5 +141,22 @@ static class PdfRenderer
             _ => (0f, 1.2f),
         };
         return (spacing.Item1 * factor, spacing.Item2 * factor);
+    }
+}
+
+record PdfRenderizado(byte[] Bytes, int Paginas);
+
+sealed class ContadorPaginas : IDynamicComponent
+{
+    public int Paginas { get; private set; }
+
+    public DynamicComponentComposeResult Compose(DynamicContext context)
+    {
+        Paginas = context.TotalPages;
+        return new DynamicComponentComposeResult
+        {
+            Content = context.CreateElement(container => container.Width(0).Height(0)),
+            HasMoreContent = false,
+        };
     }
 }

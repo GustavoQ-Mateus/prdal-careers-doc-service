@@ -24,12 +24,16 @@ app.MapPost("/render/docx", (RenderRequest req) =>
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 "curriculo.docx")));
 
-app.MapPost("/render/pdf", (RenderRequest req) =>
+app.MapPost("/render/pdf", (RenderRequest req, HttpContext context) =>
     limites.MarkdownExcede(req.Markdown)
         ? Task.FromResult(limites.CorpoGrande())
         : limites.Renderizar(
-            () => PdfRenderer.Render(MarkdownParser.Parse(req.Markdown), req.Template),
-            bytes => Results.File(bytes, "application/pdf", "curriculo.pdf")));
+            () => PdfRenderer.RenderComPaginas(MarkdownParser.Parse(req.Markdown), req.Template),
+            pdf =>
+            {
+                context.Response.Headers["X-Paginas"] = pdf.Paginas.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return Results.File(pdf.Bytes, "application/pdf", "curriculo.pdf");
+            }));
 
 app.Run();
 
