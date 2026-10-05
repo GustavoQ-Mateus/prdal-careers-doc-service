@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    outputs:
+      imagem: ${{ steps.contexto.outputs.proprio }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restaurar
+        run: |
+          dotnet restore
+          dotnet restore tests
+      - name: Verificar texto
+        run: dotnet run --project scripts/verificar-texto.csproj
+      - name: Compilar e testar
+        run: |
+          dotnet build -c Release --no-restore
+          dotnet test tests -c Release --no-restore
+      - name: Conferir contexto proprio
+        id: contexto
+        run: |
+          if [ -f .contexto-proprio ]; then
+            echo "proprio=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Construir imagem
+        if: steps.contexto.outputs.proprio == 'true'
+        run: docker build -t unidade:${{ github.sha }} .
+      - name: Verificar vulnerabilidades
+        if: steps.contexto.outputs.proprio == 'true'
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: unidade:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+      - name: Salvar imagem verificada
+        if: steps.contexto.outputs.proprio == 'true'
+        run: docker save unidade:${{ github.sha }} -o "${{ runner.temp }}/imagem.tar"
+      - uses: actions/upload-artifact@v4
+        if: steps.contexto.outputs.proprio == 'true'
+        with:
+          name: imagem
+          path: ${{ runner.temp }}/imagem.tar
+          retention-days: 1
+
+  publicar:
+    needs: verificar
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_ROLE_ARN != '' && needs.verificar.outputs.imagem == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: publicar
+      cancel-in-progress: false
+    env:
+      AWS_PROFILE: prdal-gustavo
+      AWS_REGION: us-east-1
+      ECR_REPOSITORIO: doc-service
+      LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME }}
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: imagem
+        path: ${{ runner.temp }}
+    - uses: aws-actions/configure-aws-credentials@v6
+      with:
+        role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+        aws-region: us-east-1
+    - name: Conferir identidade
+      run: aws sts get-caller-identity --profile prdal-gustavo
+    - name: Publicar imagem verificada
+      id: imagem
+      env:
+        SHA: ${{ github.sha }}
+      run: |-
+        conta=$(aws sts get-caller-identity --profile prdal-gustavo --query Account --output text)
+        registro="$conta.dkr.ecr.$AWS_REGION.amazonaws.com"
+        aws ecr get-login-password --profile prdal-gustavo | docker login --username AWS --password-stdin "$registro"
+        docker load -i "$RUNNER_TEMP/imagem.tar"
+        imagem="$registro/$ECR_REPOSITORIO"
+        docker tag "unidade:$SHA" "$imagem:$SHA"
+        docker tag "unidade:$SHA" "$imagem:latest"
+        docker push "$imagem:$SHA"
+        docker push "$imagem:latest"
+        echo "uri=$imagem:$SHA" >> "$GITHUB_OUTPUT"
+    - name: Atualizar funcao
+      env:
+        IMAGEM: ${{ steps.imagem.outputs.uri }}
+      run: |-
+        test -n "$LAMBDA_FUNCTION_NAME"
+        aws lambda update-function-code --profile prdal-gustavo --function-name "$LAMBDA_FUNCTION_NAME" --image-uri "$IMAGEM" > /dev/null
+        aws lambda wait function-updated-v2 --profile prdal-gustavo --function-name "$LAMBDA_FUNCTION_NAME"
