@@ -24,6 +24,8 @@ public class ContratoTests
         Assert.True(JsonNode.DeepEquals(esperado, gerado), "Contrato divergiu; execute gerar-contrato.ps1 e revise a alteracao");
         Assert.Equal(3, gerado["paths"]!.AsObject().Count);
         Assert.NotNull(gerado["paths"]!["/render/pdf"]!["post"]!["responses"]!["200"]!["headers"]!["X-Paginas"]);
+        Assert.Equal("binary", gerado["paths"]!["/render/pdf"]!["post"]!["responses"]!["200"]!["content"]!["application/pdf"]!["schema"]!["format"]!.GetValue<string>());
+        Assert.NotNull(gerado["paths"]!["/render/docx"]!["post"]!["responses"]!["200"]!["content"]!["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]);
     }
 
     [Fact]

@@ -41,7 +41,7 @@ static class Rotas
                     bytes => Results.File(bytes,
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "curriculo.docx")))
             .WithName("renderDocx")
-            .Produces(200, contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            .Produces<byte[]>(200, contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
             .Produces<ErroResponse>(401).Produces<ErroResponse>(413).Produces<ErroResponse>(503);
         rotas.MapPost("/render/pdf", (RenderRequest req, HttpContext context) =>
             limites.MarkdownExcede(req.Markdown)
@@ -54,7 +54,7 @@ static class Rotas
                         return Results.File(pdf.Bytes, "application/pdf", "curriculo.pdf");
                     }))
             .WithName("renderPdf")
-            .Produces(200, contentType: "application/pdf")
+            .Produces<byte[]>(200, contentType: "application/pdf")
             .Produces<ErroResponse>(401).Produces<ErroResponse>(413).Produces<ErroResponse>(503);
     }
 }
