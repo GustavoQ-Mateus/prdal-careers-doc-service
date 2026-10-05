@@ -1,43 +1,10 @@
-using DocService;
-using QuestPDF.Infrastructure;
-
-QuestPDF.Settings.License = LicenseType.Community;
+﻿using DocService;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://0.0.0.0:8080");
-
+Inicializacao.ConfigurarServicos(builder.Services);
 var app = builder.Build();
-ServicoAutenticado.ExigirTokenNoBoot(app.Configuration);
-app.UseServicoAutenticado();
-var limites = new LimitesRenderizacao(app.Configuration);
-app.UseLimiteDeCorpo(limites);
-
-app.MapGet("/health", () => new HealthResponse("doc-service", "ok"));
-
-app.MapPost("/render/docx", (RenderRequest req) =>
-    limites.MarkdownExcede(req.Markdown)
-        ? Task.FromResult(limites.CorpoGrande())
-        : limites.Renderizar(
-            () => DocxRenderer.Render(MarkdownParser.Parse(req.Markdown), req.Template),
-            bytes => Results.File(
-                bytes,
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "curriculo.docx")));
-
-app.MapPost("/render/pdf", (RenderRequest req, HttpContext context) =>
-    limites.MarkdownExcede(req.Markdown)
-        ? Task.FromResult(limites.CorpoGrande())
-        : limites.Renderizar(
-            () => PdfRenderer.RenderComPaginas(MarkdownParser.Parse(req.Markdown), req.Template),
-            pdf =>
-            {
-                context.Response.Headers["X-Paginas"] = pdf.Paginas.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                return Results.File(pdf.Bytes, "application/pdf", "curriculo.pdf");
-            }));
-
+Inicializacao.Configurar(app, app.Configuration);
 app.Run();
 
 public partial class Program;
-
-record HealthResponse(string Service, string Status);
-record RenderRequest(string Markdown, string? Template);

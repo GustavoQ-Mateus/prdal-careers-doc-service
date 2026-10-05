@@ -35,9 +35,8 @@ static class ServicoAutenticado
             Encoding.UTF8.GetBytes(esperado));
     }
 
-    public static IApplicationBuilder UseServicoAutenticado(this WebApplication app)
+    public static IApplicationBuilder UseServicoAutenticado(this IApplicationBuilder app, IConfiguration config)
     {
-        var config = app.Configuration;
         return app.Use(async (context, next) =>
         {
             if (RotasPublicas.Contains(context.Request.Path.Value ?? string.Empty)

@@ -1,0 +1,11 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY doc-service.csproj ./
+RUN dotnet restore -r linux-x64
+COPY . ./
+RUN dotnet publish -c Release -r linux-x64 --self-contained false -o /app
+
+FROM public.ecr.aws/lambda/dotnet:10
+COPY --from=build /app ${LAMBDA_TASK_ROOT}/
+USER 1000:1000
+CMD ["doc-service::DocService.Lambda::FunctionHandlerAsync"]

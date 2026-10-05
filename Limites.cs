@@ -45,7 +45,7 @@ sealed class LimitesRenderizacao
 
 static class LimiteDeCorpo
 {
-    public static IApplicationBuilder UseLimiteDeCorpo(this WebApplication app, LimitesRenderizacao limites)
+    public static IApplicationBuilder UseLimiteDeCorpo(this IApplicationBuilder app, LimitesRenderizacao limites)
     {
         return app.Use(async (context, next) =>
         {
