@@ -6,6 +6,13 @@ namespace DocService;
 
 static class PdfRenderer
 {
+    static PdfRenderer()
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+        QuestPDF.Settings.UseSystemFonts = true;
+        QuestPDF.Settings.ThrowOnMissingFontFamilies = false;
+    }
+
     public static byte[] Render(IReadOnlyList<DocElement> elements, string? template = null)
     {
         var compact = string.Equals(template, "compact", StringComparison.OrdinalIgnoreCase);
